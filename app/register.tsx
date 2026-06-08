@@ -158,7 +158,7 @@ export default function RegisterScreen() {
                 returnKeyType="done"
                 onSubmitEditing={handleRegister}
               />
-              <Text style={styles.hint}>Min 12 characters with letters, numbers and a special character (e.g. !@#$%). You'll reset it every 90 days.</Text>
+              <Text style={styles.hint}>Min 12 characters with letters, numbers and a special character (e.g. !@#$%).</Text>
               {error ? <Text style={styles.error}>{error}</Text> : null}
               <Pressable
                 onPress={handleRegister}
