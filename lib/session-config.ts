@@ -1,0 +1,8 @@
+export const SESSION_INACTIVITY_MS = 30 * 60 * 1000;
+
+export const PENDING_OTP_TIMEOUT_MS = 10 * 60 * 1000;
+
+/** @deprecated use PENDING_OTP_TIMEOUT_MS */
+export const PENDING_2FA_TIMEOUT_MS = PENDING_OTP_TIMEOUT_MS;
+
+export const PASSWORD_MAX_AGE_DAYS = 90;
