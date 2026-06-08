@@ -2,6 +2,9 @@
   "buildCommand": "npm run build:web",
   "outputDirectory": "dist",
   "rewrites": [
+    { "source": "/api/auth/:action", "destination": "/api/auth?action=:action" },
+    { "source": "/api/family/:action", "destination": "/api/family?action=:action" },
+    { "source": "/api/checkins/:month", "destination": "/api/checkins?month=:month" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
