@@ -1,9 +1,10 @@
 import { ApiError, useAuth } from '@/contexts/AuthContext';
 import { Button, Input } from '@/components/ui';
-import { colors, radius, shadow, spacing, typography } from '@/lib/design-tokens';
+import { useColors } from '@/contexts/ThemeContext';
+import { type Colors, radius, shadow, spacing, typography } from '@/lib/design-tokens';
 import { PENDING_OTP_TIMEOUT_MS } from '@/lib/session-config';
 import { router } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -19,6 +20,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 type Step = 'form' | 'verify';
 
 export default function RegisterScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { register, verifyEmail } = useAuth();
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState<Step>('form');
@@ -217,7 +220,7 @@ export default function RegisterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: Colors) { return StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
   content: { paddingHorizontal: spacing.lg, alignItems: 'center' },
 
@@ -330,4 +333,4 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     paddingHorizontal: spacing.lg,
   },
-});
+}); }

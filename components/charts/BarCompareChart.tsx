@@ -1,7 +1,9 @@
 import { Card } from '@/components/ui';
+import { useColors } from '@/contexts/ThemeContext';
 import { formatCurrency } from '@/lib/format';
 import type { BarCompareItem } from '@/lib/chart-data';
-import { colors, spacing, typography } from '@/lib/design-tokens';
+import { spacing, typography } from '@/lib/design-tokens';
+import { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { BarChart } from 'react-native-gifted-charts';
 
@@ -12,6 +14,15 @@ interface BarCompareChartProps {
 }
 
 export function BarCompareChart({ title, subtitle, items }: BarCompareChartProps) {
+  const colors = useColors();
+  const styles = useMemo(() => StyleSheet.create({
+    title:      { ...typography.label, color: colors.textMuted, marginBottom: spacing.xs },
+    subtitle:   { ...typography.caption, color: colors.textSecondary, marginBottom: spacing.md },
+    empty:      { ...typography.caption, color: colors.textMuted, marginTop: spacing.sm },
+    legendText: { ...typography.caption, color: colors.textSecondary },
+    axis:       { color: colors.textMuted, fontSize: 10 },
+  }), [colors]);
+
   const filtered = items.filter((item) => item.budget > 0 || item.spent > 0);
 
   if (filtered.length === 0) {
@@ -29,17 +40,10 @@ export function BarCompareChart({ title, subtitle, items }: BarCompareChartProps
 
   const stackData = filtered.map((item) => {
     if (item.spent > item.budget) {
-      return {
-        label: item.label,
-        stacks: [{ value: item.spent, color: colors.negative as string }],
-      };
+      return { label: item.label, stacks: [{ value: item.spent, color: colors.negative as string }] };
     }
-    const stacks: { value: number; color: string }[] = [
-      { value: item.spent, color: colors.accent },
-    ];
-    if (item.budget > item.spent) {
-      stacks.push({ value: item.budget - item.spent, color: colors.accentLight });
-    }
+    const stacks: { value: number; color: string }[] = [{ value: item.spent, color: colors.accent }];
+    if (item.budget > item.spent) stacks.push({ value: item.budget - item.spent, color: colors.accentLight });
     return { label: item.label, stacks };
   });
 
@@ -47,17 +51,17 @@ export function BarCompareChart({ title, subtitle, items }: BarCompareChartProps
     <Card>
       <Text style={styles.title}>{title}</Text>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-      <View style={styles.legendRow}>
-        <View style={styles.legendItem}>
-          <View style={[styles.swatch, { backgroundColor: colors.accent }]} />
+      <View style={staticStyles.legendRow}>
+        <View style={staticStyles.legendItem}>
+          <View style={[staticStyles.swatch, { backgroundColor: colors.accent }]} />
           <Text style={styles.legendText}>Spent</Text>
         </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.swatch, { backgroundColor: colors.accentLight }]} />
+        <View style={staticStyles.legendItem}>
+          <View style={[staticStyles.swatch, { backgroundColor: colors.accentLight }]} />
           <Text style={styles.legendText}>Under budget</Text>
         </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.swatch, { backgroundColor: colors.negative }]} />
+        <View style={staticStyles.legendItem}>
+          <View style={[staticStyles.swatch, { backgroundColor: colors.negative }]} />
           <Text style={styles.legendText}>Over budget</Text>
         </View>
       </View>
@@ -78,44 +82,8 @@ export function BarCompareChart({ title, subtitle, items }: BarCompareChartProps
   );
 }
 
-const styles = StyleSheet.create({
-  title: {
-    ...typography.label,
-    color: colors.textMuted,
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginBottom: spacing.md,
-  },
-  empty: {
-    ...typography.caption,
-    color: colors.textMuted,
-    marginTop: spacing.sm,
-  },
-  legendRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.md,
-    marginBottom: spacing.md,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  swatch: {
-    width: 10,
-    height: 10,
-    borderRadius: 2,
-  },
-  legendText: {
-    ...typography.caption,
-    color: colors.textSecondary,
-  },
-  axis: {
-    color: colors.textMuted,
-    fontSize: 10,
-  },
+const staticStyles = StyleSheet.create({
+  legendRow:  { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.md },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  swatch:     { width: 10, height: 10, borderRadius: 2 },
 });

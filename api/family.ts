@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb';
 import crypto from 'crypto';
 import { connectToDatabase, handleOptions, setCorsHeaders } from './utils/db';
 import { requireAuth, signAccessToken } from './utils/auth';
+import { sendFamilyInviteEmail } from './utils/email';
 
 function generateInviteCode(): string {
   return crypto.randomBytes(4).toString('hex').toUpperCase();
@@ -225,7 +226,7 @@ async function handleSetLabel(req: VercelRequest, res: VercelResponse) {
   return res.status(200).json({ message: 'Label updated.' });
 }
 
-// ─── POST /api/family/transfer-admin ─────────────────────────────────────────
+// ─── POST /api/family/transfer-admin (promotes target; caller keeps admin role) ──
 async function handleTransferAdmin(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -240,47 +241,66 @@ async function handleTransferAdmin(req: VercelRequest, res: VercelResponse) {
   const currentAdminEntry = family.members?.find(
     (m: { userId: string; role: string }) => m.userId === auth.userId && m.role === 'admin',
   );
-  if (!currentAdminEntry) return res.status(403).json({ error: 'Only family admins can transfer admin role' });
+  if (!currentAdminEntry) return res.status(403).json({ error: 'Only family admins can grant admin role' });
 
   const { newAdminUserId } = req.body ?? {};
   if (!newAdminUserId) return res.status(400).json({ error: 'newAdminUserId is required' });
-  if (newAdminUserId === auth.userId) return res.status(400).json({ error: 'You are already the admin' });
+  if (newAdminUserId === auth.userId) return res.status(400).json({ error: 'You are already an admin' });
 
   const targetMember = family.members?.find((m: { userId: string }) => m.userId === newAdminUserId);
   if (!targetMember) return res.status(404).json({ error: 'Target user is not a member of this family' });
+  if (targetMember.role === 'admin') return res.status(400).json({ error: 'This member is already an admin' });
 
-  await db.collection('families').updateOne(
-    { _id: family._id, 'members.userId': auth.userId },
-    { $set: { 'members.$.role': 'member' } },
-  );
+  // Promote target — caller keeps their own admin role (multiple admins allowed)
   await db.collection('families').updateOne(
     { _id: family._id, 'members.userId': newAdminUserId },
     { $set: { 'members.$.role': 'admin' } },
   );
-
-  await db.collection('users').updateOne({ _id: new ObjectId(auth.userId) }, { $set: { familyRole: 'member' } });
-  await db.collection('users').updateOne({ _id: new ObjectId(newAdminUserId) }, { $set: { familyRole: 'admin' } });
-
-  const userDoc = await db.collection('users').findOne({ _id: new ObjectId(auth.userId) });
-  const token = signAccessToken({
-    userId: auth.userId,
-    email: auth.email,
-    displayName: userDoc?.displayName ?? auth.displayName,
-    familyId: auth.familyId,
-  });
+  await db.collection('users').updateOne(
+    { _id: new ObjectId(newAdminUserId) },
+    { $set: { familyRole: 'admin' } },
+  );
 
   return res.status(200).json({
-    token,
-    message: `${targetMember.displayName} is now the family admin.`,
-    user: {
-      _id: auth.userId,
-      email: auth.email,
-      displayName: userDoc?.displayName ?? auth.displayName,
-      familyId: auth.familyId,
-      familyRole: 'member',
-      onboardingComplete: userDoc?.onboardingComplete ?? true,
-    },
+    message: `${targetMember.displayName} is now also a family admin.`,
   });
+}
+
+// ─── POST /api/family/invite-email ───────────────────────────────────────────
+async function handleInviteEmail(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  let auth;
+  try { auth = await requireAuth(req); } catch { return res.status(401).json({ error: 'Unauthorized' }); }
+  if (!auth.familyId) return res.status(403).json({ error: 'You are not in a family group' });
+
+  const { db } = await connectToDatabase();
+  const family = await db.collection('families').findOne({ _id: new ObjectId(auth.familyId) });
+  if (!family) return res.status(404).json({ error: 'Family not found' });
+
+  const adminEntry = family.members?.find(
+    (m: { userId: string; role: string }) => m.userId === auth.userId && m.role === 'admin',
+  );
+  if (!adminEntry) return res.status(403).json({ error: 'Only family admins can send invites' });
+
+  const { email } = req.body ?? {};
+  if (!email || typeof email !== 'string') return res.status(400).json({ error: 'email is required' });
+
+  const emailNorm = String(email).toLowerCase().trim();
+
+  // A user can only be in one family — check if they already have one
+  const inviteeDoc = await db.collection('users').findOne({ email: emailNorm });
+  if (inviteeDoc?.familyId) {
+    return res.status(400).json({ error: 'This person is already in a family group' });
+  }
+
+  try {
+    await sendFamilyInviteEmail(emailNorm, auth.displayName, family.name, family.inviteCode);
+  } catch {
+    return res.status(500).json({ error: 'Failed to send invite email. Check SMTP settings.' });
+  }
+
+  return res.status(200).json({ message: `Invite sent to ${emailNorm}` });
 }
 
 // ─── Main dispatcher ──────────────────────────────────────────────────────────
@@ -297,8 +317,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       case 'create':     return await handleCreate(req, res);
       case 'join':       return await handleJoin(req, res);
       case 'approve':    return await handleApprove(req, res);
-      case 'set-label':  return await handleSetLabel(req, res);
+      case 'set-label':      return await handleSetLabel(req, res);
       case 'transfer-admin': return await handleTransferAdmin(req, res);
+      case 'invite-email':   return await handleInviteEmail(req, res);
       default:
         return res.status(404).json({ error: 'Unknown family action' });
     }

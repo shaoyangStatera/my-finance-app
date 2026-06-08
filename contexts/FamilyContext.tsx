@@ -68,3 +68,19 @@ export function useFamily() {
   if (!ctx) throw new Error('useFamily must be used within FamilyProvider');
   return ctx;
 }
+
+/**
+ * Returns a userId → display name map built from family members.
+ * Prefers memberLabels (admin-set nicknames) over displayName when available.
+ */
+export function useMemberNames(): Record<string, string> {
+  const { family } = useFamily();
+  return useMemo(() => {
+    if (!family) return {};
+    const map: Record<string, string> = {};
+    for (const m of family.members) {
+      map[m.userId] = family.memberLabels?.[m.userId] || m.displayName;
+    }
+    return map;
+  }, [family]);
+}

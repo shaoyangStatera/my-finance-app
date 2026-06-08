@@ -3,9 +3,9 @@ import { CheckinProvider } from '@/contexts/CheckinContext';
 import { FamilyProvider } from '@/contexts/FamilyContext';
 import { HousingProvider } from '@/contexts/HousingContext';
 import { NotificationsProvider } from '@/contexts/NotificationsContext';
-import { PreferencesProvider, usePreferences } from '@/contexts/PreferencesContext';
+import { PreferencesProvider } from '@/contexts/PreferencesContext';
+import { ThemeProvider, useColors } from '@/contexts/ThemeContext';
 import { ViewModeProvider } from '@/contexts/ViewModeContext';
-import { colors } from '@/lib/design-tokens';
 import { configureForegroundNotifications, registerForPushNotifications } from '@/lib/notifications';
 import {
   Inter_400Regular,
@@ -18,6 +18,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Platform, View } from 'react-native';
+import { usePreferences } from '@/contexts/PreferencesContext';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -25,17 +26,21 @@ SplashScreen.preventAutoHideAsync();
 if (Platform.OS !== 'web') configureForegroundNotifications();
 
 function AppShell() {
+  const colors = useColors();
   const { prefs } = usePreferences();
   return (
-    <View style={{ flex: 1, backgroundColor: prefs.bgColor }}>
-      <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: prefs.bgColor } }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <StatusBar style={prefs.darkMode ? 'light' : 'dark'} />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="welcome" />
         <Stack.Screen name="login" />
         <Stack.Screen name="register" />
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="settings/account" />
+        <Stack.Screen name="settings/notifications" />
+        <Stack.Screen name="settings/family" />
       </Stack>
     </View>
   );
@@ -62,17 +67,19 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <PreferencesProvider>
-        <FamilyProvider>
-          <CheckinProvider>
-            <HousingProvider>
-              <NotificationsProvider>
-                <ViewModeProvider>
-                  <AppShell />
-                </ViewModeProvider>
-              </NotificationsProvider>
-            </HousingProvider>
-          </CheckinProvider>
-        </FamilyProvider>
+        <ThemeProvider>
+          <FamilyProvider>
+            <CheckinProvider>
+              <HousingProvider>
+                <NotificationsProvider>
+                  <ViewModeProvider>
+                    <AppShell />
+                  </ViewModeProvider>
+                </NotificationsProvider>
+              </HousingProvider>
+            </CheckinProvider>
+          </FamilyProvider>
+        </ThemeProvider>
       </PreferencesProvider>
     </AuthProvider>
   );

@@ -1,13 +1,18 @@
 import { MonthPicker } from '@/components/MonthPicker';
 import { PieChartCard } from '@/components/charts';
 import { Button, Card, Input, MoneyInput, Screen, Stat } from '@/components/ui';
+import { NotificationBell } from '@/components/NotificationBell';
+import { useAuth } from '@/contexts/AuthContext';
 import { useCheckin } from '@/contexts/CheckinContext';
+import { useMemberNames } from '@/contexts/FamilyContext';
 import { ViewToggle, useFilteredCheckin } from '@/contexts/ViewModeContext';
 import { totalInsurancePremiums } from '@/lib/calculations';
 import { insuranceByOwner, insuranceByPolicy } from '@/lib/chart-data';
 import { formatCurrency } from '@/lib/format';
 import type { InsuranceItem, PersonOwner } from '@/lib/types';
-import { colors, spacing, typography } from '@/lib/design-tokens';
+import { useColors } from '@/contexts/ThemeContext';
+import { type Colors, spacing, typography } from '@/lib/design-tokens';
+import { useMemo } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 function newId() {
@@ -21,6 +26,7 @@ function InsuranceSection({
   onUpdate,
   onRemove,
   onAdd,
+  readOnly = false,
 }: {
   owner: PersonOwner;
   label: string;
@@ -28,7 +34,10 @@ function InsuranceSection({
   onUpdate: (index: number, patch: Partial<InsuranceItem>) => void;
   onRemove: (index: number) => void;
   onAdd: () => void;
+  readOnly?: boolean;
 }) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const total = insurance.reduce((s, i) => s + i.premium, 0);
 
   return (
@@ -38,30 +47,41 @@ function InsuranceSection({
         <Stat label="Monthly premiums" value={formatCurrency(total)} />
         {insurance.map((item, index) => (
           <View key={item.id} style={styles.itemBlock}>
-            <Input label="Policy name" value={item.name} onChangeText={(t) => onUpdate(index, { name: t })} />
-            <Input label="Coverage" value={item.coverage} onChangeText={(t) => onUpdate(index, { coverage: t })} />
-            <MoneyInput label="Monthly premium" value={item.premium} onChangeValue={(v) => onUpdate(index, { premium: v })} />
+            <Input label="Policy name" value={item.name} onChangeText={readOnly ? undefined : (t) => onUpdate(index, { name: t })} editable={!readOnly} />
+            <Input label="Coverage" value={item.coverage} onChangeText={readOnly ? undefined : (t) => onUpdate(index, { coverage: t })} editable={!readOnly} />
+            <MoneyInput label="Monthly premium" value={item.premium} onChangeValue={readOnly ? undefined : (v) => onUpdate(index, { premium: v })} />
             <Input
               label="Renewal date"
               value={item.renewalDate}
-              onChangeText={(t) => onUpdate(index, { renewalDate: t })}
+              onChangeText={readOnly ? undefined : (t) => onUpdate(index, { renewalDate: t })}
               placeholder="YYYY-MM-DD"
+              editable={!readOnly}
             />
-            <Pressable onPress={() => onRemove(index)}>
-              <Text style={styles.remove}>Remove</Text>
-            </Pressable>
+            {!readOnly && (
+              <Pressable onPress={() => onRemove(index)}>
+                <Text style={styles.remove}>Remove</Text>
+              </Pressable>
+            )}
           </View>
         ))}
-        <Button label="Add policy" variant="secondary" onPress={onAdd} />
+        {!readOnly && <Button label="Add policy" variant="secondary" onPress={onAdd} />}
+        {readOnly && insurance.length === 0 && (
+          <Text style={styles.emptyHint}>No policies recorded.</Text>
+        )}
       </Card>
     </View>
   );
 }
 
 export default function InsuranceScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { monthYear, setMonthYear, checkin, isLoading, isSaving, saveCheckin, updateCheckin } =
     useCheckin();
   const { filteredCheckin, activeMembers } = useFilteredCheckin();
+  const memberNames = useMemberNames();
+  const { user } = useAuth();
+  const isAdmin = user?.familyRole === 'admin';
 
   if (isLoading || !checkin || !filteredCheckin) {
     return (
@@ -85,6 +105,7 @@ export default function InsuranceScreen() {
   }
 
   function renderPerson(owner: PersonOwner, label: string) {
+    const canEdit = isAdmin || owner === user?._id;
     const entries = itemsFor(data.insurance, owner);
     return (
       <InsuranceSection
@@ -92,6 +113,7 @@ export default function InsuranceScreen() {
         owner={owner}
         label={label}
         insurance={entries.map((e) => e.item)}
+        readOnly={!canEdit}
         onUpdate={(localIndex, patch) => {
           const globalIndex = entries[localIndex].globalIndex;
           updateCheckin((c) => {
@@ -127,6 +149,7 @@ export default function InsuranceScreen() {
           <Text style={styles.pageTitle}>Insurance</Text>
           <Text style={styles.pageSubtitle}>Policies and premiums by person</Text>
         </View>
+        <NotificationBell />
         <MonthPicker monthYear={monthYear} onChange={setMonthYear} inline />
       </View>
 
@@ -137,7 +160,7 @@ export default function InsuranceScreen() {
         <Text style={styles.summaryValue}>{formatCurrency(totalInsurancePremiums(data))}</Text>
       </Card>
 
-      <PieChartCard title="Premiums by person" data={insuranceByOwner(data)} />
+      <PieChartCard title="Premiums by person" data={insuranceByOwner(data, memberNames)} />
       <PieChartCard title="Premiums by policy" data={insuranceByPolicy(data)} />
 
       {members.map((m) => renderPerson(m.userId, m.displayName))}
@@ -147,7 +170,7 @@ export default function InsuranceScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: Colors) { return StyleSheet.create({
   loading: {
     flex: 1,
     alignItems: 'center',
@@ -208,4 +231,10 @@ const styles = StyleSheet.create({
     color: colors.negative,
     marginTop: spacing.sm,
   },
-});
+  emptyHint: {
+    ...typography.caption,
+    color: colors.textMuted,
+    textAlign: 'center',
+    paddingVertical: spacing.sm,
+  },
+}); }

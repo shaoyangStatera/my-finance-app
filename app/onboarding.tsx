@@ -2,9 +2,10 @@ import { ApiError } from '@/contexts/AuthContext';
 import { useFamily } from '@/contexts/FamilyContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui';
-import { colors, radius, shadow, spacing, typography } from '@/lib/design-tokens';
+import { useColors } from '@/contexts/ThemeContext';
+import { type Colors, radius, shadow, spacing, typography } from '@/lib/design-tokens';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -47,6 +48,8 @@ const STEP_META: Record<Step, { emoji: string; bg: string; title: string; sub: s
 };
 
 export default function OnboardingScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { user } = useAuth();
   const { createFamily, joinFamily } = useFamily();
   const insets = useSafeAreaInsets();
@@ -209,7 +212,7 @@ export default function OnboardingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: Colors) { return StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
   content: { paddingHorizontal: spacing.lg, alignItems: 'center' },
 
@@ -357,4 +360,4 @@ const styles = StyleSheet.create({
 
   backLink: { marginTop: spacing.md, alignItems: 'center', paddingVertical: spacing.sm },
   backLinkText: { ...typography.caption, color: colors.textMuted },
-});
+}); }

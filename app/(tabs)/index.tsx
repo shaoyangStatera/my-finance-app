@@ -2,7 +2,7 @@ import { BarCompareChart, PieChartCard } from '@/components/charts';
 import { Card, Screen, Stat } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCheckin } from '@/contexts/CheckinContext';
-import { useFamily } from '@/contexts/FamilyContext';
+import { useFamily, useMemberNames } from '@/contexts/FamilyContext';
 import { useHousing } from '@/contexts/HousingContext';
 import { useFilteredCheckin, useViewMode } from '@/contexts/ViewModeContext';
 import { router } from 'expo-router';
@@ -20,8 +20,12 @@ import {
   incomeByPerson,
   monthlyOutflowBreakdown,
 } from '@/lib/chart-data';
+import { HOUSING_STAGE_LABELS } from '@/lib/types';
 import { formatCurrency, formatMonthYear } from '@/lib/format';
-import { colors, radius, shadow, spacing, typography } from '@/lib/design-tokens';
+import { useColors } from '@/contexts/ThemeContext';
+import { type Colors, radius, shadow, spacing, typography } from '@/lib/design-tokens';
+import { useMemo } from 'react';
+import { NotificationBell } from '@/components/NotificationBell';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -29,19 +33,20 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 
 function HeroViewToggle() {
   const { viewMode, setViewMode } = useViewMode();
+  const colors = useColors();
   return (
     <View style={styles.viewToggle}>
       <Pressable
         onPress={() => setViewMode('family')}
         style={[styles.toggleBtn, viewMode === 'family' && styles.toggleBtnActive]}>
-        <Text style={[styles.toggleBtnText, viewMode === 'family' && styles.toggleBtnTextActive]}>
+        <Text style={[styles.toggleBtnText, viewMode === 'family' && { color: colors.text }]}>
           Family
         </Text>
       </Pressable>
       <Pressable
         onPress={() => setViewMode('me')}
         style={[styles.toggleBtn, viewMode === 'me' && styles.toggleBtnActive]}>
-        <Text style={[styles.toggleBtnText, viewMode === 'me' && styles.toggleBtnTextActive]}>
+        <Text style={[styles.toggleBtnText, viewMode === 'me' && { color: colors.text }]}>
           Me
         </Text>
       </Pressable>
@@ -52,10 +57,13 @@ function HeroViewToggle() {
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function OverviewScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { user, isGuest } = useAuth();
   const { monthYear, checkin, isLoading } = useCheckin();
   const { housing } = useHousing();
   const { family } = useFamily();
+  const memberNames = useMemberNames();
   const { filteredCheckin, inMeMode } = useFilteredCheckin();
   const { viewMode, isMultiMember } = useViewMode();
 
@@ -105,6 +113,7 @@ export default function OverviewScreen() {
           {!isGuest && isMultiMember && (
             <HeroViewToggle />
           )}
+          <NotificationBell tint="light" />
         </View>
 
         <View style={styles.heroStats}>
@@ -140,7 +149,7 @@ export default function OverviewScreen() {
         <PieChartCard
           title="Income split"
           subtitle="By family member"
-          data={incomeByPerson(activeCheckin)}
+          data={incomeByPerson(activeCheckin, memberNames)}
         />
       )}
 
@@ -178,6 +187,11 @@ export default function OverviewScreen() {
           <View style={styles.stagePill}>
             <Text style={styles.stagePillText}>{housing.currentStage || 'Not started'}</Text>
           </View>
+          {housing.currentStage && HOUSING_STAGE_LABELS[housing.currentStage]?.pending ? (
+            <Text style={styles.stagePendingMsg}>
+              {HOUSING_STAGE_LABELS[housing.currentStage].pending}
+            </Text>
+          ) : null}
         </Card>
       )}
 
@@ -191,7 +205,7 @@ export default function OverviewScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: Colors) { return StyleSheet.create({
   loading: {
     flex: 1,
     alignItems: 'center',
@@ -246,9 +260,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_600SemiBold',
     fontWeight: '600',
     color: 'rgba(255,255,255,0.65)',
-  },
-  toggleBtnTextActive: {
-    color: colors.text,
   },
 
   heroStats: {
@@ -316,6 +327,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     fontSize: 12,
   },
+  stagePendingMsg: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: spacing.sm,
+  },
   notes: {
     ...typography.body,
     color: colors.textSecondary,
@@ -340,4 +356,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.warning,
   },
-});
+}); }

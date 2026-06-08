@@ -119,6 +119,10 @@ export async function setMemberLabel(targetUserId: string, label: string): Promi
   return request('/api/family/set-label', { method: 'POST', body: JSON.stringify({ targetUserId, label }) });
 }
 
+export async function inviteByEmail(email: string): Promise<{ message: string }> {
+  return request('/api/family/invite-email', { method: 'POST', body: JSON.stringify({ email }) });
+}
+
 export async function getNotifications(limit = 50): Promise<AppNotification[]> {
   return request<AppNotification[]>(`/api/notifications?limit=${limit}`);
 }
@@ -135,6 +139,16 @@ export async function updateNotificationPrefs(
   prefs: { cpf: boolean; investment: boolean; expense: boolean },
 ): Promise<{ message: string }> {
   return request('/api/auth/notification-prefs', { method: 'POST', body: JSON.stringify(prefs) });
+}
+
+export async function requestEmailChange(newEmail: string): Promise<{ message: string }> {
+  return request('/api/auth/request-email-change', { method: 'POST', body: JSON.stringify({ newEmail }) });
+}
+
+export async function confirmEmailChange(
+  code: string,
+): Promise<{ token: string; user: import('./types').User; message: string }> {
+  return request('/api/auth/confirm-email-change', { method: 'POST', body: JSON.stringify({ code }) });
 }
 
 // ─── Check-ins ─────────────────────────────────────────────────────────────────

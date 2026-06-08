@@ -1,7 +1,10 @@
 import { MonthPicker } from '@/components/MonthPicker';
 import { BarCompareChart, PieChartCard } from '@/components/charts';
 import { Button, Card, Input, MoneyInput, Screen, Stat } from '@/components/ui';
+import { NotificationBell } from '@/components/NotificationBell';
+import { useAuth } from '@/contexts/AuthContext';
 import { useCheckin } from '@/contexts/CheckinContext';
+import { useMemberNames } from '@/contexts/FamilyContext';
 import { ViewToggle, useFilteredCheckin } from '@/contexts/ViewModeContext';
 import { netSavings, savingsRate, totalFixedExpenses, totalIncome } from '@/lib/calculations';
 import {
@@ -13,13 +16,20 @@ import {
 } from '@/lib/chart-data';
 import { formatCurrency } from '@/lib/format';
 import type { PersonOwner } from '@/lib/types';
-import { colors, radius, spacing, typography } from '@/lib/design-tokens';
+import { useColors } from '@/contexts/ThemeContext';
+import { type Colors, radius, spacing, typography } from '@/lib/design-tokens';
+import { useMemo } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 export default function LedgerScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { monthYear, setMonthYear, checkin, isLoading, isSaving, saveCheckin, updateCheckin } =
     useCheckin();
   const { filteredCheckin, activeMembers } = useFilteredCheckin();
+  const memberNames = useMemberNames();
+  const { user } = useAuth();
+  const isAdmin = user?.familyRole === 'admin';
 
   if (isLoading || !checkin || !filteredCheckin) {
     return (
@@ -44,28 +54,31 @@ export default function LedgerScreen() {
           <Text style={styles.pageTitle}>Monthly ledger</Text>
           <Text style={styles.pageSubtitle}>Income, fixed costs, and discretionary spend</Text>
         </View>
+        <NotificationBell />
         <MonthPicker monthYear={monthYear} onChange={setMonthYear} inline />
       </View>
 
       <ViewToggle />
 
-      <PieChartCard title="Income composition" data={incomeByPerson(filteredCheckin)} />
+      <PieChartCard title="Income composition" data={incomeByPerson(filteredCheckin, memberNames)} />
 
       <Card>
         <Text style={styles.groupLabel}>Income</Text>
-        {members.map((m) => (
-          <MoneyInput
-            key={m.userId}
-            label={m.displayName}
-            value={checkin.ledger.income[m.userId] ?? 0}
-            onChangeValue={(v) =>
-              updateCheckin((c) => ({
-                ...c,
-                ledger: { ...c.ledger, income: { ...c.ledger.income, [m.userId]: v } },
-              }))
-            }
-          />
-        ))}
+        {members.map((m) => {
+          const canEditIncome = isAdmin || m.userId === user?._id;
+          return (
+            <MoneyInput
+              key={m.userId}
+              label={m.displayName}
+              value={checkin.ledger.income[m.userId] ?? 0}
+              onChangeValue={canEditIncome ? (v) =>
+                updateCheckin((c) => ({
+                  ...c,
+                  ledger: { ...c.ledger, income: { ...c.ledger.income, [m.userId]: v } },
+                })) : undefined}
+            />
+          );
+        })}
         <MoneyInput
           label="Other"
           value={checkin.ledger.income['other'] ?? 0}
@@ -117,10 +130,10 @@ export default function LedgerScreen() {
       <PieChartCard
         title="Discretionary spend"
         subtitle="By category"
-        data={discretionarySpentBreakdown(filteredCheckin)}
+        data={discretionarySpentBreakdown(filteredCheckin, memberNames)}
       />
 
-      <PieChartCard title="Discretionary by person" data={discretionaryByPerson(filteredCheckin)} />
+      <PieChartCard title="Discretionary by person" data={discretionaryByPerson(filteredCheckin, memberNames)} />
 
       <BarCompareChart
         title="Budget vs spent"
@@ -130,7 +143,7 @@ export default function LedgerScreen() {
 
       <Card>
         <Text style={styles.groupLabel}>Discretionary (by person)</Text>
-        {ownerIds.map((owner) => {
+        {ownerIds.filter((owner) => isAdmin || owner === user?._id).map((owner) => {
           const memberLabel = members.find((m) => m.userId === owner)?.displayName ?? owner;
           const entries = checkin.ledger.discretionary
             .map((item, globalIndex) => ({ item, globalIndex }))
@@ -229,7 +242,7 @@ export default function LedgerScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: Colors) { return StyleSheet.create({
   loading: {
     flex: 1,
     alignItems: 'center',
@@ -292,4 +305,4 @@ const styles = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: 'top',
   },
-});
+}); }

@@ -8,31 +8,45 @@ const PREFS_KEY = 'nestworth_prefs';
 
 export interface Preferences {
   avatarEmoji: string;
-  bgColor: string;
+  darkMode: boolean;
   notifPrefs: NotificationPrefs;
 }
 
 const DEFAULTS: Preferences = {
   avatarEmoji: '🏡',
-  bgColor: '#F5F4F0',
+  darkMode: false,
   notifPrefs: DEFAULT_NOTIF_PREFS,
 };
 
 interface PreferencesContextValue {
   prefs: Preferences;
   setAvatarEmoji: (emoji: string) => void;
-  setBgColor: (color: string) => void;
+  setDarkMode: (dark: boolean) => void;
   setNotifPrefs: (prefs: NotificationPrefs) => void;
 }
 
 const PreferencesContext = createContext<PreferencesContextValue | null>(null);
+
+function migratePrefs(raw: Record<string, unknown>): Preferences {
+  const base: Preferences = { ...DEFAULTS };
+  if (typeof raw.avatarEmoji === 'string') base.avatarEmoji = raw.avatarEmoji;
+  if (typeof raw.darkMode === 'boolean') base.darkMode = raw.darkMode;
+  if (raw.notifPrefs && typeof raw.notifPrefs === 'object') {
+    base.notifPrefs = { ...DEFAULT_NOTIF_PREFS, ...(raw.notifPrefs as Partial<NotificationPrefs>) };
+  }
+  // Migrate legacy bgColor → darkMode
+  if (!('darkMode' in raw) && typeof raw.bgColor === 'string') {
+    base.darkMode = ['#1A1A2E', '#1C2B24'].includes(raw.bgColor);
+  }
+  return base;
+}
 
 async function loadPrefs(): Promise<Preferences> {
   try {
     const raw = Platform.OS === 'web'
       ? localStorage.getItem(PREFS_KEY)
       : await SecureStore.getItemAsync(PREFS_KEY);
-    if (raw) return { ...DEFAULTS, ...JSON.parse(raw) };
+    if (raw) return migratePrefs(JSON.parse(raw));
   } catch {}
   return DEFAULTS;
 }
@@ -63,9 +77,9 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const setBgColor = useCallback((color: string) => {
+  const setDarkMode = useCallback((dark: boolean) => {
     setPrefs((p) => {
-      const next = { ...p, bgColor: color };
+      const next = { ...p, darkMode: dark };
       savePrefs(next);
       return next;
     });
@@ -80,8 +94,8 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ prefs, setAvatarEmoji, setBgColor, setNotifPrefs }),
-    [prefs, setAvatarEmoji, setBgColor, setNotifPrefs],
+    () => ({ prefs, setAvatarEmoji, setDarkMode, setNotifPrefs }),
+    [prefs, setAvatarEmoji, setDarkMode, setNotifPrefs],
   );
 
   return <PreferencesContext.Provider value={value}>{children}</PreferencesContext.Provider>;

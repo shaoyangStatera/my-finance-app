@@ -1,5 +1,7 @@
-import { colors, radius, shadow, spacing, typography } from '@/lib/design-tokens';
+import { useColors } from '@/contexts/ThemeContext';
+import { type Colors, radius, shadow, spacing, typography } from '@/lib/design-tokens';
 import { router } from 'expo-router';
+import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -11,6 +13,8 @@ const FEATURES = [
 ];
 
 export default function WelcomeScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
 
   return (
@@ -70,7 +74,7 @@ export default function WelcomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: Colors) { return StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.surface,
@@ -203,4 +207,4 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     paddingHorizontal: spacing.lg,
   },
-});
+}); }

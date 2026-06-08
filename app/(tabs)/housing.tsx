@@ -1,10 +1,12 @@
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { NotificationBell } from '@/components/NotificationBell';
 import { Button, Card, Input, Screen } from '@/components/ui';
 import { useHousing } from '@/contexts/HousingContext';
-import { colors, radius, shadow, spacing, typography } from '@/lib/design-tokens';
+import { useColors } from '@/contexts/ThemeContext';
+import { type Colors, radius, shadow, spacing, typography } from '@/lib/design-tokens';
+import { useMemo, useState } from 'react';
 import { HOUSING_TYPES, HousingType, RoomType, BTO_STAGES, HOUSING_STAGE_EXTRAS, HOUSING_STAGE_LABELS, stagesForHousingType, roomTypesForHousingType, HousingBallotExtra, HousingAppointmentExtra } from '@/lib/types';
 import { Platform, ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useState } from 'react';
 
 function formatDateLabel(iso: string): string {
   if (!iso) return '';
@@ -29,6 +31,8 @@ function StageTimeline({
   onChangeDate: (stage: string, isoDate: string) => void;
   onChangeExtra: (stage: string, patch: Partial<HousingBallotExtra & HousingAppointmentExtra>) => void;
 }) {
+  const colors = useColors();
+  const timelineStyles = useMemo(() => makeTimelineStyles(colors), [colors]);
   const currentIndex = stages.indexOf(currentStage);
   const [pickerStage, setPickerStage] = useState<string | null>(null);
   const [pickerDate, setPickerDate] = useState<Date>(new Date());
@@ -260,6 +264,8 @@ function WebDateInput({
   onChange: (iso: string) => void;
   onCancel: () => void;
 }) {
+  const colors = useColors();
+  const timelineStyles = useMemo(() => makeTimelineStyles(colors), [colors]);
   return (
     <View style={timelineStyles.webDateWrap}>
       {/* @ts-ignore — web-only input element */}
@@ -291,6 +297,8 @@ function WebDateInput({
 }
 
 function BallotTextInput({ value, placeholder, onChangeText }: { value: string; placeholder: string; onChangeText: (v: string) => void }) {
+  const colors = useColors();
+  const timelineStyles = useMemo(() => makeTimelineStyles(colors), [colors]);
   return (
     <TextInput
       value={value}
@@ -305,7 +313,7 @@ function BallotTextInput({ value, placeholder, onChangeText }: { value: string; 
 const NODE_SIZE = 24;
 const CONNECTOR_WIDTH = 2;
 
-const timelineStyles = StyleSheet.create({
+function makeTimelineStyles(colors: Colors) { return StyleSheet.create({
   root: {
     paddingTop: spacing.xs,
   },
@@ -625,9 +633,11 @@ const timelineStyles = StyleSheet.create({
     fontStyle: 'italic',
     marginBottom: spacing.sm,
   },
-});
+}); }
 
 export default function HousingScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { housing, isLoading, isSaving, saveHousing, updateHousing } = useHousing();
   const [editing, setEditing] = useState(false);
 
@@ -644,8 +654,11 @@ export default function HousingScreen() {
     return (
       <Screen>
         <View style={styles.pageHeader}>
-          <Text style={styles.pageTitle}>Housing</Text>
-          <Text style={styles.pageSubtitle}>Track your housing journey</Text>
+          <View style={styles.pageTitleCol}>
+            <Text style={styles.pageTitle}>Housing</Text>
+            <Text style={styles.pageSubtitle}>Track your housing journey</Text>
+          </View>
+          <NotificationBell />
         </View>
         <Card elevated>
           <Text style={styles.emptyText}>No housing record yet. Tap below to set up your property.</Text>
@@ -673,12 +686,15 @@ export default function HousingScreen() {
   return (
     <Screen>
       <View style={styles.pageHeader}>
-        <Text style={styles.pageTitle}>Housing</Text>
-        <Text style={styles.pageSubtitle}>
-          {housing
-            ? `${h.projectName || 'Your property'} — milestones & key dates`
-            : 'Set up your property details'}
-        </Text>
+        <View style={styles.pageTitleCol}>
+          <Text style={styles.pageTitle}>Housing</Text>
+          <Text style={styles.pageSubtitle}>
+            {housing
+              ? `${h.projectName || 'Your property'} — milestones & key dates`
+              : 'Set up your property details'}
+          </Text>
+        </View>
+        <NotificationBell />
       </View>
 
       {/* Project info card — only shown when a record already exists */}
@@ -841,7 +857,7 @@ export default function HousingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: Colors) { return StyleSheet.create({
   loading: {
     flex: 1,
     alignItems: 'center',
@@ -849,9 +865,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   pageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingTop: spacing.lg,
     paddingBottom: spacing.sm,
+    gap: spacing.sm,
   },
+  pageTitleCol: { flex: 1 },
   cardHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -971,4 +992,4 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textMuted,
   },
-});
+}); }

@@ -1,37 +1,29 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationsContext';
-import { colors, typography } from '@/lib/design-tokens';
+import { useColors } from '@/contexts/ThemeContext';
+import { typography } from '@/lib/design-tokens';
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, Tabs } from 'expo-router';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 
 function NotifBadgeIcon({ color, size }: { color: string; size: number }) {
   const { unreadCount } = useNotifications();
+  const colors = useColors();
   return (
     <View style={{ width: size + 8, height: size + 8, alignItems: 'center', justifyContent: 'center' }}>
       <Ionicons name="person-circle-outline" size={size} color={color} />
       {unreadCount > 0 && (
-        <View style={badgeStyles.badge}>
-          <Text style={badgeStyles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+        <View style={[staticStyles.badge, { backgroundColor: colors.negative }]}>
+          <Text style={staticStyles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
         </View>
       )}
     </View>
   );
 }
 
-const badgeStyles = StyleSheet.create({
-  badge: {
-    position: 'absolute', top: 0, right: 0,
-    backgroundColor: colors.negative,
-    borderRadius: 8, minWidth: 16, height: 16,
-    alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: 3,
-  },
-  badgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
-});
-
 export default function TabLayout() {
   const { isAuthenticated, isLoading } = useAuth();
+  const colors = useColors();
 
   if (!isLoading && !isAuthenticated) {
     return <Redirect href="/login" />;
@@ -41,10 +33,10 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: [staticStyles.tabBar, { backgroundColor: colors.surface, borderTopColor: colors.border }],
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarLabelStyle: styles.tabLabel,
+        tabBarLabelStyle: staticStyles.tabLabel,
       }}>
       <Tabs.Screen
         name="index"
@@ -99,10 +91,8 @@ export default function TabLayout() {
   );
 }
 
-const styles = StyleSheet.create({
+const staticStyles = StyleSheet.create({
   tabBar: {
-    backgroundColor: colors.surface,
-    borderTopColor: colors.border,
     borderTopWidth: StyleSheet.hairlineWidth,
     height: Platform.OS === 'ios' ? 88 : 68,
     paddingTop: 8,
@@ -119,4 +109,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
     fontFamily: 'Inter_600SemiBold',
   },
+  badge: {
+    position: 'absolute', top: 0, right: 0,
+    borderRadius: 8, minWidth: 16, height: 16,
+    alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  badgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
 });

@@ -18,7 +18,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from './AuthContext';
 import { useFamily } from './FamilyContext';
 import { useCheckin } from './CheckinContext';
-import { colors, radius, spacing, typography } from '@/lib/design-tokens';
+import { useColors } from '@/contexts/ThemeContext';
+import { radius, spacing, typography } from '@/lib/design-tokens';
 import type { MonthlyCheckin } from '@/lib/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -117,22 +118,23 @@ export function useFilteredCheckin() {
 export function ViewToggle() {
   const { user, isGuest } = useAuth();
   const { viewMode, setViewMode, isMultiMember } = useViewMode();
+  const colors = useColors();
 
   if (isGuest || !user || !isMultiMember) return null;
 
   return (
-    <View style={toggleStyles.row}>
+    <View style={[staticToggleStyles.row, { backgroundColor: colors.background, borderColor: colors.border }]}>
       <Pressable
         onPress={() => setViewMode('family')}
-        style={[toggleStyles.btn, viewMode === 'family' && toggleStyles.btnActive]}>
-        <Text style={[toggleStyles.btnText, viewMode === 'family' && toggleStyles.btnTextActive]}>
+        style={[staticToggleStyles.btn, viewMode === 'family' && { backgroundColor: colors.accent }]}>
+        <Text style={[staticToggleStyles.btnText, { color: viewMode === 'family' ? '#fff' : colors.textSecondary }]}>
           Family
         </Text>
       </Pressable>
       <Pressable
         onPress={() => setViewMode('me')}
-        style={[toggleStyles.btn, viewMode === 'me' && toggleStyles.btnActive]}>
-        <Text style={[toggleStyles.btnText, viewMode === 'me' && toggleStyles.btnTextActive]}>
+        style={[staticToggleStyles.btn, viewMode === 'me' && { backgroundColor: colors.accent }]}>
+        <Text style={[staticToggleStyles.btnText, { color: viewMode === 'me' ? '#fff' : colors.textSecondary }]}>
           Me
         </Text>
       </Pressable>
@@ -140,34 +142,20 @@ export function ViewToggle() {
   );
 }
 
-const toggleStyles = StyleSheet.create({
+const staticToggleStyles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignSelf: 'flex-start',
-    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: radius.sm,
     marginBottom: spacing.sm,
     overflow: 'hidden',
   },
-  btn: {
-    paddingVertical: 7,
-    paddingHorizontal: spacing.md,
-  },
-  btnActive: {
-    backgroundColor: colors.accent,
-  },
+  btn: { paddingVertical: 7, paddingHorizontal: spacing.md },
   btnText: {
     ...typography.label,
-    color: colors.textSecondary,
     textTransform: 'none',
     letterSpacing: 0,
     fontSize: 13,
-  },
-  btnTextActive: {
-    color: '#fff',
-    fontFamily: 'Inter_600SemiBold',
-    fontWeight: '600',
   },
 });

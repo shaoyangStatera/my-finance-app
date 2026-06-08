@@ -1,7 +1,8 @@
 import { Input } from "@/components/ui";
 import { ApiError, useAuth } from "@/contexts/AuthContext";
+import { useColors } from '@/contexts/ThemeContext';
 import {
-  colors,
+  type Colors,
   radius,
   shadow,
   spacing,
@@ -21,6 +22,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useMemo } from "react";
 
 type Step = "credentials" | "reset";
 
@@ -43,6 +45,8 @@ const STEP_ILLUSTRATION: Record<
 };
 
 export default function LoginScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const {
     login,
     resetPassword,
@@ -360,7 +364,7 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: Colors) { return StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
   loading: {
     flex: 1,
@@ -507,4 +511,4 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: spacing.sm,
   },
-});
+}); }

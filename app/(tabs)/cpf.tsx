@@ -1,12 +1,16 @@
 import { MonthPicker } from '@/components/MonthPicker';
 import { PieChartCard } from '@/components/charts';
 import { Button, Card, MoneyInput, Screen, Stat } from '@/components/ui';
+import { NotificationBell } from '@/components/NotificationBell';
+import { useAuth } from '@/contexts/AuthContext';
 import { useCheckin } from '@/contexts/CheckinContext';
+import { useMemberNames } from '@/contexts/FamilyContext';
 import { ViewToggle, useFilteredCheckin } from '@/contexts/ViewModeContext';
 import { cpfAccountBreakdown, cpfByAccountType, cpfByPerson } from '@/lib/chart-data';
 import { formatCurrency, sumCpf } from '@/lib/format';
-import { colors, radius, spacing, typography } from '@/lib/design-tokens';
-import { useState } from 'react';
+import { useColors } from '@/contexts/ThemeContext';
+import { type Colors, radius, spacing, typography } from '@/lib/design-tokens';
+import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 function CpfPersonCard({
@@ -18,9 +22,10 @@ function CpfPersonCard({
   balance: { oa: number; sa: number; ma: number };
   onChange: (field: 'oa' | 'sa' | 'ma', value: number) => void;
 }) {
+  const colors = useColors();
   return (
-    <Card style={styles.personCard}>
-      <Text style={styles.personName}>{name}</Text>
+    <Card style={{ marginBottom: 0, flex: 1 }}>
+      <Text style={{ ...typography.bodyMedium, color: colors.text, marginBottom: spacing.md, fontSize: 16, fontFamily: 'Inter_600SemiBold', fontWeight: '600' }}>{name}</Text>
       <MoneyInput label="Ordinary (OA)" value={balance.oa} onChangeValue={(v) => onChange('oa', v)} />
       <MoneyInput label="Special (SA)" value={balance.sa} onChangeValue={(v) => onChange('sa', v)} />
       <MoneyInput label="MediSave (MA)" value={balance.ma} onChangeValue={(v) => onChange('ma', v)} />
@@ -30,9 +35,14 @@ function CpfPersonCard({
 }
 
 export default function CpfScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { monthYear, setMonthYear, checkin, isLoading, isSaving, saveCheckin, updateCheckin } =
     useCheckin();
   const { filteredCheckin, activeMembers } = useFilteredCheckin();
+  const memberNames = useMemberNames();
+  const { user } = useAuth();
+  const isAdmin = user?.familyRole === 'admin';
   const [editing, setEditing] = useState(false);
 
   if (isLoading || !checkin || !filteredCheckin) {
@@ -57,6 +67,7 @@ export default function CpfScreen() {
           <Text style={styles.pageTitle}>CPF balances</Text>
           <Text style={styles.pageSubtitle}>Snapshot as of this month's check-in</Text>
         </View>
+        <NotificationBell />
         <MonthPicker monthYear={monthYear} onChange={setMonthYear} inline />
       </View>
 
@@ -77,7 +88,7 @@ export default function CpfScreen() {
               <View style={styles.accountMixCol}>
                 <PieChartCard
                   title="Combined household CPF"
-                  data={cpfByPerson(filteredCheckin)}
+                  data={cpfByPerson(filteredCheckin, memberNames)}
                   centerLabel="Household"
                   compact
                 />
@@ -114,7 +125,7 @@ export default function CpfScreen() {
       {editing && (
         <>
           <View style={styles.personRow}>
-            {members.map((m) => (
+            {members.filter((m) => isAdmin || m.userId === user?._id).map((m) => (
               <View key={m.userId} style={styles.personCol}>
                 <CpfPersonCard
                   name={m.displayName}
@@ -146,7 +157,7 @@ export default function CpfScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: Colors) { return StyleSheet.create({
   loading: {
     flex: 1,
     alignItems: 'center',
@@ -229,4 +240,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: spacing.lg,
   },
-});
+}); }

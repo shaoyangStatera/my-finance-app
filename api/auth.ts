@@ -392,6 +392,99 @@ async function handleResetPassword(req: VercelRequest, res: VercelResponse) {
   });
 }
 
+// ─── request-email-change ────────────────────────────────────────────────────
+async function handleRequestEmailChange(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  let auth;
+  try { auth = await requireAuth(req); } catch { return res.status(401).json({ error: 'Unauthorized' }); }
+
+  const { newEmail } = req.body ?? {};
+  if (!newEmail || !EMAIL_RE.test(String(newEmail))) {
+    return res.status(400).json({ error: 'A valid new email address is required' });
+  }
+
+  const emailNorm = String(newEmail).toLowerCase().trim();
+
+  const { db } = await connectToDatabase();
+
+  // Reject if email is same as current
+  const currentUser = await db.collection('users').findOne({ _id: new ObjectId(auth.userId) });
+  if (!currentUser) return res.status(404).json({ error: 'User not found' });
+  if (currentUser.email === emailNorm) {
+    return res.status(400).json({ error: 'New email must be different from your current email' });
+  }
+
+  // Reject if already taken by another verified account
+  const existing = await db.collection('users').findOne({ email: emailNorm, emailVerified: true });
+  if (existing) return res.status(409).json({ error: 'This email is already in use' });
+
+  // Store pending email change on the user document
+  await db.collection('users').updateOne(
+    { _id: new ObjectId(auth.userId) },
+    { $set: { pendingEmail: emailNorm } },
+  );
+
+  // Send OTP to the NEW email address to prove ownership
+  await createAndSendOtp(auth.userId, 'email_change', emailNorm);
+
+  return res.status(200).json({ message: `Verification code sent to ${emailNorm}` });
+}
+
+// ─── confirm-email-change ─────────────────────────────────────────────────────
+async function handleConfirmEmailChange(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  let auth;
+  try { auth = await requireAuth(req); } catch { return res.status(401).json({ error: 'Unauthorized' }); }
+
+  const { code } = req.body ?? {};
+  if (!code) return res.status(400).json({ error: 'Verification code is required' });
+
+  const { db } = await connectToDatabase();
+  const userDoc = await db.collection('users').findOne({ _id: new ObjectId(auth.userId) });
+  if (!userDoc) return res.status(404).json({ error: 'User not found' });
+  if (!userDoc.pendingEmail) return res.status(400).json({ error: 'No pending email change found. Please start again.' });
+
+  const valid = await verifyEmailOtp(auth.userId, 'email_change', String(code).trim());
+  if (!valid) return res.status(400).json({ error: 'Invalid or expired code' });
+
+  const newEmail = userDoc.pendingEmail;
+
+  // Final uniqueness check in case another user grabbed it while OTP was pending
+  const taken = await db.collection('users').findOne({
+    email: newEmail,
+    emailVerified: true,
+    _id: { $ne: new ObjectId(auth.userId) },
+  });
+  if (taken) return res.status(409).json({ error: 'This email was just taken by another account. Please use a different email.' });
+
+  await db.collection('users').updateOne(
+    { _id: new ObjectId(auth.userId) },
+    { $set: { email: newEmail, updatedAt: new Date().toISOString() }, $unset: { pendingEmail: '' } },
+  );
+
+  const token = signAccessToken({
+    userId: auth.userId,
+    email: newEmail,
+    displayName: userDoc.displayName,
+    familyId: userDoc.familyId ?? undefined,
+  });
+
+  return res.status(200).json({
+    token,
+    user: {
+      _id: auth.userId,
+      email: newEmail,
+      displayName: userDoc.displayName,
+      familyId: userDoc.familyId ?? null,
+      familyRole: userDoc.familyRole ?? null,
+      onboardingComplete: userDoc.onboardingComplete ?? false,
+    },
+    message: 'Email updated successfully.',
+  });
+}
+
 // ─── notification-prefs ───────────────────────────────────────────────────────
 async function handleNotificationPrefs(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -429,8 +522,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       case 'setup':            return await handleSetup(req, res);
       case 'verify-email':     return await handleVerifyEmail(req, res);
       case 'verify-otp':       return await handleVerifyOtp(req, res);
-      case 'reset-password':   return await handleResetPassword(req, res);
-      case 'notification-prefs': return await handleNotificationPrefs(req, res);
+      case 'reset-password':          return await handleResetPassword(req, res);
+      case 'notification-prefs':      return await handleNotificationPrefs(req, res);
+      case 'request-email-change':    return await handleRequestEmailChange(req, res);
+      case 'confirm-email-change':    return await handleConfirmEmailChange(req, res);
       default:
         return res.status(404).json({ error: 'Unknown auth action' });
     }

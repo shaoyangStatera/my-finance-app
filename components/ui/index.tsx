@@ -1,6 +1,6 @@
-import { colors, layout, radius, shadow, spacing, typography } from '@/lib/design-tokens';
-import { usePreferences } from '@/contexts/PreferencesContext';
-import { ReactNode } from 'react';
+import { useColors } from '@/contexts/ThemeContext';
+import { layout, radius, shadow, spacing, typography, type Colors } from '@/lib/design-tokens';
+import { ReactNode, useMemo } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -24,21 +24,21 @@ interface ScreenProps {
 
 export function Screen({ children, scroll = true, style }: ScreenProps) {
   const insets = useSafeAreaInsets();
-  const { prefs } = usePreferences();
+  const colors = useColors();
   const content = scroll ? (
     <ScrollView
-      contentContainerStyle={[styles.scrollContent, style]}
+      contentContainerStyle={[staticStyles.scrollContent, style]}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}>
       {children}
     </ScrollView>
   ) : (
-    <View style={[styles.scrollContent, style]}>{children}</View>
+    <View style={[staticStyles.scrollContent, style]}>{children}</View>
   );
 
   return (
     <KeyboardAvoidingView
-      style={[styles.screen, { paddingTop: insets.top, backgroundColor: prefs.bgColor }]}
+      style={[staticStyles.screen, { paddingTop: insets.top, backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {content}
     </KeyboardAvoidingView>
@@ -53,12 +53,16 @@ interface CardProps {
 }
 
 export function Card({ children, style, elevated, tinted }: CardProps) {
+  const colors = useColors();
   return (
     <View
       style={[
-        styles.card,
-        elevated && styles.cardElevated,
-        tinted && styles.cardTinted,
+        staticStyles.card,
+        {
+          backgroundColor: tinted ? colors.accentLight : colors.surface,
+          borderColor: tinted ? colors.accent + '44' : colors.border,
+        },
+        elevated && staticStyles.cardElevated,
         style,
       ]}>
       {children}
@@ -75,6 +79,7 @@ interface StatProps {
 }
 
 export function Stat({ label, value, hint, tone = 'default', large }: StatProps) {
+  const colors = useColors();
   const valueColor =
     tone === 'positive' ? colors.positive
     : tone === 'negative' ? colors.negative
@@ -88,12 +93,12 @@ export function Stat({ label, value, hint, tone = 'default', large }: StatProps)
     : undefined;
 
   return (
-    <View style={[styles.statContainer, bgColor ? { backgroundColor: bgColor, borderRadius: radius.sm, padding: spacing.md } : undefined]}>
-      <Text style={styles.statLabel}>{label}</Text>
-      <Text style={[styles.statValue, large && styles.statValueLarge, { color: valueColor }]}>
+    <View style={[staticStyles.statContainer, bgColor ? { backgroundColor: bgColor, borderRadius: radius.sm, padding: spacing.md } : undefined]}>
+      <Text style={[staticStyles.statLabel, { color: colors.textMuted }]}>{label}</Text>
+      <Text style={[staticStyles.statValue, large && staticStyles.statValueLarge, { color: valueColor }]}>
         {value}
       </Text>
-      {hint ? <Text style={styles.statHint}>{hint}</Text> : null}
+      {hint ? <Text style={[staticStyles.statHint, { color: colors.textSecondary }]}>{hint}</Text> : null}
     </View>
   );
 }
@@ -104,10 +109,11 @@ interface SectionHeaderProps {
 }
 
 export function SectionHeader({ title, subtitle }: SectionHeaderProps) {
+  const colors = useColors();
   return (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {subtitle ? <Text style={styles.sectionSubtitle}>{subtitle}</Text> : null}
+    <View style={staticStyles.sectionHeader}>
+      <Text style={[staticStyles.sectionTitle, { color: colors.text }]}>{title}</Text>
+      {subtitle ? <Text style={[staticStyles.sectionSubtitle, { color: colors.textSecondary }]}>{subtitle}</Text> : null}
     </View>
   );
 }
@@ -118,25 +124,26 @@ interface BadgeProps {
 }
 
 export function Badge({ label, tone = 'neutral' }: BadgeProps) {
-  const styles2 = badgeStyles[tone];
+  const colors = useColors();
+  const badgeBg =
+    tone === 'accent'   ? colors.accentLight
+    : tone === 'positive' ? colors.positiveLight
+    : tone === 'negative' ? colors.negativeLight
+    : tone === 'warning'  ? colors.warningLight
+    : colors.borderLight;
+  const badgeText =
+    tone === 'accent'   ? colors.accent
+    : tone === 'positive' ? colors.positive
+    : tone === 'negative' ? colors.negative
+    : tone === 'warning'  ? colors.warning
+    : colors.textSecondary;
+
   return (
-    <View style={[badgeBase.badge, styles2.badge]}>
-      <Text style={[badgeBase.text, styles2.text]}>{label}</Text>
+    <View style={[staticStyles.badge, { backgroundColor: badgeBg }]}>
+      <Text style={[staticStyles.badgeText, { color: badgeText }]}>{label}</Text>
     </View>
   );
 }
-
-const badgeBase = StyleSheet.create({
-  badge: { borderRadius: 99, paddingVertical: 3, paddingHorizontal: 10, alignSelf: 'flex-start' },
-  text: { fontSize: 11, fontWeight: '600', fontFamily: 'Inter_600SemiBold', letterSpacing: 0.3 },
-});
-const badgeStyles = {
-  accent:   StyleSheet.create({ badge: { backgroundColor: colors.accentLight }, text: { color: colors.accent } }),
-  positive: StyleSheet.create({ badge: { backgroundColor: colors.positiveLight }, text: { color: colors.positive } }),
-  negative: StyleSheet.create({ badge: { backgroundColor: colors.negativeLight }, text: { color: colors.negative } }),
-  warning:  StyleSheet.create({ badge: { backgroundColor: colors.warningLight }, text: { color: colors.warning } }),
-  neutral:  StyleSheet.create({ badge: { backgroundColor: colors.borderLight }, text: { color: colors.textSecondary } }),
-};
 
 interface ButtonProps {
   label: string;
@@ -144,7 +151,6 @@ interface ButtonProps {
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   disabled?: boolean;
   loading?: boolean;
-  icon?: string;
 }
 
 export function Button({
@@ -154,27 +160,28 @@ export function Button({
   disabled = false,
   loading = false,
 }: ButtonProps) {
+  const colors = useColors();
+  const styles = useMemo(() => makeButtonStyles(colors), [colors]);
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled || loading}
       style={({ pressed }) => [
-        styles.button,
+        staticStyles.button,
         variant === 'primary' && styles.buttonPrimary,
         variant === 'secondary' && styles.buttonSecondary,
-        variant === 'ghost' && styles.buttonGhost,
+        variant === 'ghost' && staticStyles.buttonGhost,
         variant === 'danger' && styles.buttonDanger,
-        (disabled || loading) && styles.buttonDisabled,
-        pressed && !disabled && styles.buttonPressed,
+        (disabled || loading) && staticStyles.buttonDisabled,
+        pressed && !disabled && staticStyles.buttonPressed,
       ]}>
       {loading ? (
         <ActivityIndicator color={variant === 'primary' || variant === 'danger' ? '#fff' : colors.accent} />
       ) : (
         <Text
           style={[
-            styles.buttonLabel,
-            variant === 'primary' && styles.buttonLabelPrimary,
-            variant === 'danger' && styles.buttonLabelPrimary,
+            staticStyles.buttonLabel,
+            (variant === 'primary' || variant === 'danger') && staticStyles.buttonLabelPrimary,
             (variant === 'secondary' || variant === 'ghost') && styles.buttonLabelSecondary,
           ]}>
           {label}
@@ -184,17 +191,27 @@ export function Button({
   );
 }
 
+function makeButtonStyles(colors: Colors) {
+  return StyleSheet.create({
+    buttonPrimary: { backgroundColor: colors.accent, ...shadow.card },
+    buttonSecondary: { backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.border },
+    buttonDanger: { backgroundColor: colors.negative },
+    buttonLabelSecondary: { color: colors.text },
+  });
+}
+
 interface InputProps extends TextInputProps {
   label: string;
 }
 
 export function Input({ label, style, ...props }: InputProps) {
+  const colors = useColors();
   return (
-    <View style={styles.inputGroup}>
-      <Text style={styles.inputLabel}>{label}</Text>
+    <View style={staticStyles.inputGroup}>
+      <Text style={[staticStyles.inputLabel, { color: colors.textMuted }]}>{label}</Text>
       <TextInput
         placeholderTextColor={colors.textMuted}
-        style={[styles.input, style]}
+        style={[staticStyles.input, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border }, style]}
         {...props}
       />
     </View>
@@ -203,7 +220,7 @@ export function Input({ label, style, ...props }: InputProps) {
 
 interface MoneyInputProps extends Omit<InputProps, 'onChangeText' | 'value'> {
   value: number;
-  onChangeValue: (value: number) => void;
+  onChangeValue?: (value: number) => void;
 }
 
 export function MoneyInput({ value, onChangeValue, ...props }: MoneyInputProps) {
@@ -213,7 +230,9 @@ export function MoneyInput({ value, onChangeValue, ...props }: MoneyInputProps) 
       value={value === 0 ? '' : String(value)}
       keyboardType="numeric"
       placeholder="0"
+      editable={onChangeValue !== undefined && props.editable !== false}
       onChangeText={(text) => {
+        if (!onChangeValue) return;
         const parsed = Number(text.replace(/[^0-9.]/g, ''));
         onChangeValue(Number.isNaN(parsed) ? 0 : parsed);
       }}
@@ -221,11 +240,9 @@ export function MoneyInput({ value, onChangeValue, ...props }: MoneyInputProps) 
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
+// ─── Static styles (layout / sizing only — no colors) ─────────────────────────
+const staticStyles = StyleSheet.create({
+  screen: { flex: 1 },
   scrollContent: {
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.xxl + layout.tabBarHeight,
@@ -234,57 +251,23 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   card: {
-    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: radius.md,
     padding: spacing.lg,
     marginBottom: spacing.md,
     ...shadow.card,
   },
-  cardElevated: {
-    ...shadow.elevated,
-    borderWidth: 0,
-  },
-  cardTinted: {
-    backgroundColor: colors.accentLight,
-    borderColor: '#C8DDD4',
-  },
-  statContainer: {
-    marginBottom: spacing.sm,
-  },
-  statLabel: {
-    ...typography.label,
-    color: colors.textMuted,
-    marginBottom: spacing.xs,
-  },
-  statValue: {
-    ...typography.stat,
-    color: colors.text,
-  },
-  statValueLarge: {
-    fontSize: 38,
-    letterSpacing: -1,
-  },
-  statHint: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
-  },
-  sectionHeader: {
-    marginBottom: spacing.md,
-    marginTop: spacing.sm,
-  },
-  sectionTitle: {
-    ...typography.title,
-    color: colors.text,
-    fontSize: 22,
-  },
-  sectionSubtitle: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
-  },
+  cardElevated: { ...shadow.elevated, borderWidth: 0 },
+  statContainer: { marginBottom: spacing.sm },
+  statLabel: { ...typography.label, marginBottom: spacing.xs },
+  statValue: { ...typography.stat },
+  statValueLarge: { fontSize: 38, letterSpacing: -1 },
+  statHint: { ...typography.caption, marginTop: spacing.xs },
+  sectionHeader: { marginBottom: spacing.md, marginTop: spacing.sm },
+  sectionTitle: { ...typography.title, fontSize: 22 },
+  sectionSubtitle: { ...typography.caption, marginTop: spacing.xs },
+  badge: { borderRadius: 99, paddingVertical: 3, paddingHorizontal: 10, alignSelf: 'flex-start' },
+  badgeText: { fontSize: 11, fontWeight: '600', fontFamily: 'Inter_600SemiBold', letterSpacing: 0.3 },
   button: {
     borderRadius: radius.sm,
     paddingVertical: spacing.md,
@@ -293,54 +276,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 50,
   },
-  buttonPrimary: {
-    backgroundColor: colors.accent,
-    ...shadow.card,
-  },
-  buttonSecondary: {
-    backgroundColor: colors.surface,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-  },
-  buttonGhost: {
-    backgroundColor: 'transparent',
-  },
-  buttonDanger: {
-    backgroundColor: colors.negative,
-  },
-  buttonDisabled: {
-    opacity: 0.45,
-  },
-  buttonPressed: {
-    opacity: 0.82,
-    transform: [{ scale: 0.98 }],
-  },
-  buttonLabel: {
-    ...typography.bodyMedium,
-    fontSize: 15,
-  },
-  buttonLabelPrimary: {
-    color: '#FFFFFF',
-    fontFamily: 'Inter_600SemiBold',
-    fontWeight: '600',
-  },
-  buttonLabelSecondary: {
-    color: colors.text,
-  },
-  inputGroup: {
-    marginBottom: spacing.md,
-  },
-  inputLabel: {
-    ...typography.label,
-    color: colors.textMuted,
-    marginBottom: spacing.sm,
-  },
+  buttonGhost: { backgroundColor: 'transparent' },
+  buttonDisabled: { opacity: 0.45 },
+  buttonPressed: { opacity: 0.82, transform: [{ scale: 0.98 }] },
+  buttonLabel: { ...typography.bodyMedium, fontSize: 15 },
+  buttonLabelPrimary: { color: '#FFFFFF', fontFamily: 'Inter_600SemiBold', fontWeight: '600' },
+  inputGroup: { marginBottom: spacing.md },
+  inputLabel: { ...typography.label, marginBottom: spacing.sm },
   input: {
     ...typography.body,
-    color: colors.text,
-    backgroundColor: colors.surface,
     borderWidth: 1.5,
-    borderColor: colors.border,
     borderRadius: radius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: 13,

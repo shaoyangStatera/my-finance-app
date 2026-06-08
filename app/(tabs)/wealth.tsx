@@ -1,17 +1,19 @@
+import { NotificationBell } from '@/components/NotificationBell';
 import { MonthPicker } from '@/components/MonthPicker';
 import { PieChartCard } from '@/components/charts';
 import { Button, Card, Input, MoneyInput, Screen, Stat } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCheckin } from '@/contexts/CheckinContext';
-import { useFamily } from '@/contexts/FamilyContext';
+import { useFamily, useMemberNames } from '@/contexts/FamilyContext';
 import { ViewToggle, useFilteredCheckin } from '@/contexts/ViewModeContext';
 import { investmentsByHolding, investmentsByOwner } from '@/lib/chart-data';
 import { formatCurrency } from '@/lib/format';
 import type { InvestmentItem, InvestmentType, PersonOwner, StockQuote } from '@/lib/types';
 import { INVESTMENT_TYPES } from '@/lib/types';
 import { fetchStockQuote } from '@/lib/api';
-import { colors, radius, spacing, typography } from '@/lib/design-tokens';
-import { useState, useCallback } from 'react';
+import { useColors } from '@/contexts/ThemeContext';
+import { type Colors, radius, spacing, typography } from '@/lib/design-tokens';
+import { useState, useCallback, useMemo } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 function newId() {
@@ -64,6 +66,8 @@ function TickerLookup({
   ticker: string;
   onQuote: (q: StockQuote) => void;
 }) {
+  const colors = useColors();
+  const tickerStyles = useMemo(() => makeTickerStyles(colors), [colors]);
   const [input, setInput] = useState(ticker);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<StockQuote | null>(null);
@@ -152,6 +156,8 @@ function InvestmentEditCard({
   onUpdate: (patch: Partial<InvestmentItem>) => void;
   onRemove: () => void;
 }) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const gl = gainLoss(item);
 
   return (
@@ -258,6 +264,8 @@ function InvestmentEditCard({
 // ─── Investment view card (read mode) ─────────────────────────────────────────
 
 function InvestmentViewCard({ item }: { item: InvestmentItem }) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const value = computedValue(item);
   const gl = gainLoss(item);
 
@@ -291,9 +299,12 @@ function InvestmentViewCard({ item }: { item: InvestmentItem }) {
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function WealthScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { monthYear, setMonthYear, checkin, isLoading, isSaving, saveCheckin, updateCheckin } =
     useCheckin();
   const { family } = useFamily();
+  const memberNames = useMemberNames();
   const { user } = useAuth();
   const { filteredCheckin, activeMembers, inMeMode } = useFilteredCheckin();
   const [editing, setEditing] = useState(false);
@@ -315,8 +326,11 @@ export default function WealthScreen() {
     ...fallback,
   ];
 
-  // View mode uses filtered members; edit mode always shows all
-  const members = editing ? allMembers : (activeMembers.length > 0 ? activeMembers : allMembers);
+  const isAdmin = user?.familyRole === 'admin';
+
+  // View mode uses filtered members; edit mode shows all for admins, own only for non-admins
+  const editMembers = isAdmin ? allMembers : allMembers.filter((m) => m.userId === user?._id);
+  const members = editing ? editMembers : (activeMembers.length > 0 ? activeMembers : allMembers);
 
   const displayCheckin = editing ? checkin : (filteredCheckin ?? checkin);
 
@@ -350,6 +364,7 @@ export default function WealthScreen() {
           <Text style={styles.pageTitle}>Investments</Text>
           <Text style={styles.pageSubtitle}>Portfolio holdings by person</Text>
         </View>
+        <NotificationBell />
         <MonthPicker monthYear={monthYear} onChange={setMonthYear} inline />
       </View>
 
@@ -369,7 +384,7 @@ export default function WealthScreen() {
             <Text style={styles.summaryLabel}>Total portfolio</Text>
             <Text style={styles.summaryValue}>{formatCurrency(totalValue)}</Text>
           </Card>
-          <PieChartCard title="Holdings by person" data={investmentsByOwner(displayCheckin!)} />
+          <PieChartCard title="Holdings by person" data={investmentsByOwner(displayCheckin!, memberNames)} />
           <PieChartCard title="Holdings breakdown" data={investmentsByHolding(displayCheckin!)} />
         </>
       )}
@@ -447,7 +462,7 @@ export default function WealthScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+function makeStyles(colors: Colors) { return StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
   pageHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -529,9 +544,9 @@ const styles = StyleSheet.create({
   viewItemRight: { alignItems: 'flex-end', gap: 2 },
   viewValue: { fontSize: 15, fontFamily: 'Inter_600SemiBold', fontWeight: '600', color: colors.text },
   viewGl: { ...typography.caption },
-});
+}); }
 
-const tickerStyles = StyleSheet.create({
+function makeTickerStyles(colors: Colors) { return StyleSheet.create({
   root: { marginBottom: spacing.sm },
   row: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm },
   inputWrap: { flex: 1 },
@@ -560,4 +575,4 @@ const tickerStyles = StyleSheet.create({
     paddingVertical: 8, alignItems: 'center',
   },
   useBtnText: { fontSize: 13, fontFamily: 'Inter_600SemiBold', fontWeight: '600', color: '#fff' },
-});
+}); }

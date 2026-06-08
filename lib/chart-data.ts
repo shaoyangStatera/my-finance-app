@@ -14,12 +14,16 @@ function safeCpf(checkin: MonthlyCheckin, key: string) {
   return checkin.cpf[key] ?? { oa: 0, sa: 0, ma: 0 };
 }
 
-export function incomeByPerson(checkin: MonthlyCheckin): ChartSlice[] {
+function resolveName(id: string, memberNames?: Record<string, string>): string {
+  return memberNames?.[id] ?? id;
+}
+
+export function incomeByPerson(checkin: MonthlyCheckin, memberNames?: Record<string, string>): ChartSlice[] {
   const income = checkin.ledger.income;
   return assignColors(
     Object.entries(income)
       .filter(([, v]) => v > 0)
-      .map(([k, v]) => ({ label: k, value: v })),
+      .map(([k, v]) => ({ label: resolveName(k, memberNames), value: v })),
   );
 }
 
@@ -48,22 +52,22 @@ export function fixedExpensesBreakdown(checkin: MonthlyCheckin): ChartSlice[] {
   );
 }
 
-export function discretionarySpentBreakdown(checkin: MonthlyCheckin): ChartSlice[] {
+export function discretionarySpentBreakdown(checkin: MonthlyCheckin, memberNames?: Record<string, string>): ChartSlice[] {
   return assignColors(
     checkin.ledger.discretionary.map((item) => ({
-      label: `${item.category} (${PERSON_LABELS[item.owner]})`,
+      label: `${item.category} (${resolveName(item.owner, memberNames)})`,
       value: item.spent,
     })),
   );
 }
 
-export function discretionaryByPerson(checkin: MonthlyCheckin): ChartSlice[] {
+export function discretionaryByPerson(checkin: MonthlyCheckin, memberNames?: Record<string, string>): ChartSlice[] {
   const totals: Record<PersonOwner, number> = {};
   for (const item of checkin.ledger.discretionary) {
     totals[item.owner] = (totals[item.owner] ?? 0) + item.spent;
   }
   return assignColors(
-    Object.entries(totals).map(([k, v]) => ({ label: k, value: v })),
+    Object.entries(totals).map(([k, v]) => ({ label: resolveName(k, memberNames), value: v })),
   );
 }
 
@@ -83,9 +87,9 @@ export function discretionaryBudgetVsSpent(checkin: MonthlyCheckin): BarCompareI
     }));
 }
 
-export function cpfByPerson(checkin: MonthlyCheckin): ChartSlice[] {
+export function cpfByPerson(checkin: MonthlyCheckin, memberNames?: Record<string, string>): ChartSlice[] {
   return assignColors(
-    Object.entries(checkin.cpf).map(([k, v]) => ({ label: k, value: sumCpf(v) })),
+    Object.entries(checkin.cpf).map(([k, v]) => ({ label: resolveName(k, memberNames), value: sumCpf(v) })),
   );
 }
 
@@ -113,13 +117,13 @@ export function cpfAccountBreakdown(
   ]);
 }
 
-export function investmentsByOwner(checkin: MonthlyCheckin): ChartSlice[] {
+export function investmentsByOwner(checkin: MonthlyCheckin, memberNames?: Record<string, string>): ChartSlice[] {
   const totals: Record<PersonOwner, number> = {};
   for (const item of checkin.investments) {
     totals[item.owner] = (totals[item.owner] ?? 0) + item.value;
   }
   return assignColors(
-    Object.entries(totals).map(([k, v]) => ({ label: k, value: v })),
+    Object.entries(totals).map(([k, v]) => ({ label: resolveName(k, memberNames), value: v })),
   );
 }
 
@@ -132,13 +136,13 @@ export function investmentsByHolding(checkin: MonthlyCheckin): ChartSlice[] {
   );
 }
 
-export function insuranceByOwner(checkin: MonthlyCheckin): ChartSlice[] {
+export function insuranceByOwner(checkin: MonthlyCheckin, memberNames?: Record<string, string>): ChartSlice[] {
   const totals: Record<PersonOwner, number> = {};
   for (const item of checkin.insurance) {
     totals[item.owner] = (totals[item.owner] ?? 0) + item.premium;
   }
   return assignColors(
-    Object.entries(totals).map(([k, v]) => ({ label: k, value: v })),
+    Object.entries(totals).map(([k, v]) => ({ label: resolveName(k, memberNames), value: v })),
   );
 }
 
