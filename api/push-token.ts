@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { ObjectId } from 'mongodb';
-import { connectToDatabase, handleOptions, setCorsHeaders } from './utils/db';
-import { requireAuth } from './utils/auth';
+import { connectToDatabase, handleOptions, setCorsHeaders } from '../lib/server/db';
+import { requireAuth } from '../lib/server/auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCorsHeaders(res);

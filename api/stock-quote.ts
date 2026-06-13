@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const nodeFetch = require('node-fetch') as typeof import('node-fetch').default;
-import { setCorsHeaders, handleOptions } from './utils/db';
-import { verifyAccessToken } from './utils/auth';
+import { setCorsHeaders, handleOptions } from '../lib/server/db';
+import { verifyAccessToken } from '../lib/server/auth';
 
 /**
  * GET /api/stock-quote?ticker=AAPL

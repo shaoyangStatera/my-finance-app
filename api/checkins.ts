@@ -2,8 +2,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { ObjectId } from 'mongodb';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const nodeFetch = require('node-fetch') as typeof import('node-fetch').default;
-import { connectToDatabase, handleOptions, setCorsHeaders } from './utils/db';
-import { requireAuth } from './utils/auth';
+import { connectToDatabase, handleOptions, setCorsHeaders } from '../lib/server/db';
+import { requireAuth } from '../lib/server/auth';
 import { createEmptyCheckin, normalizeCheckin } from '../lib/types';
 
 // ─── Notification + Push helpers ──────────────────────────────────────────────

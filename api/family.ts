@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { ObjectId } from 'mongodb';
 import crypto from 'crypto';
-import { connectToDatabase, handleOptions, setCorsHeaders } from './utils/db';
-import { requireAuth, signAccessToken } from './utils/auth';
-import { sendFamilyInviteEmail } from './utils/email';
+import { connectToDatabase, handleOptions, setCorsHeaders } from '../lib/server/db';
+import { requireAuth, signAccessToken } from '../lib/server/auth';
+import { sendFamilyInviteEmail } from '../lib/server/email';
 
 function generateInviteCode(): string {
   return crypto.randomBytes(4).toString('hex').toUpperCase();

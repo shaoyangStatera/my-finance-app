@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { ObjectId } from 'mongodb';
-import { connectToDatabase, handleOptions, setCorsHeaders } from './utils/db';
+import { connectToDatabase, handleOptions, setCorsHeaders } from '../lib/server/db';
 import {
   comparePassword,
   hashPassword,
@@ -9,10 +9,10 @@ import {
   signPendingOTPToken,
   verifyAccessToken,
   verifyPendingOTPToken,
-} from './utils/auth';
-import { createAndSendOtp, verifyEmailOtp } from './utils/email-otp';
-import { PASSWORD_MIN_LENGTH } from './utils/email-config';
-import { validateNewPassword } from './utils/password-policy';
+} from '../lib/server/auth';
+import { createAndSendOtp, verifyEmailOtp } from '../lib/server/email-otp';
+import { PASSWORD_MIN_LENGTH } from '../lib/server/email-config';
+import { validateNewPassword } from '../lib/server/password-policy';
 import {
   RATE_LIMITS,
   checkRateLimit,
@@ -20,7 +20,7 @@ import {
   getClientIp,
   rateLimitErrorMessage,
   recordRateLimitFailure,
-} from './utils/rate-limit';
+} from '../lib/server/rate-limit';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
