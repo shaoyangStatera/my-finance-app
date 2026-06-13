@@ -31,22 +31,47 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 
 // ─── Hero view toggle (styled for dark gradient background) ──────────────────
 
+// Hero toggle styles are fixed (rendered on gradient, not theme surfaces)
+const heroToggleStyles = StyleSheet.create({
+  viewToggle: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    borderRadius: 99,
+    padding: 2,
+    gap: 0,
+  },
+  toggleBtn: {
+    paddingVertical: 5,
+    paddingHorizontal: 14,
+    borderRadius: 99,
+  },
+  toggleBtnActive: {
+    backgroundColor: 'rgba(255,255,255,0.95)',
+  },
+  toggleBtnText: {
+    fontSize: 12,
+    fontFamily: 'Inter_600SemiBold',
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.65)',
+  },
+});
+
 function HeroViewToggle() {
   const { viewMode, setViewMode } = useViewMode();
   const colors = useColors();
   return (
-    <View style={styles.viewToggle}>
+    <View style={heroToggleStyles.viewToggle}>
       <Pressable
         onPress={() => setViewMode('family')}
-        style={[styles.toggleBtn, viewMode === 'family' && styles.toggleBtnActive]}>
-        <Text style={[styles.toggleBtnText, viewMode === 'family' && { color: colors.text }]}>
+        style={[heroToggleStyles.toggleBtn, viewMode === 'family' && heroToggleStyles.toggleBtnActive]}>
+        <Text style={[heroToggleStyles.toggleBtnText, viewMode === 'family' && { color: colors.text }]}>
           Family
         </Text>
       </Pressable>
       <Pressable
         onPress={() => setViewMode('me')}
-        style={[styles.toggleBtn, viewMode === 'me' && styles.toggleBtnActive]}>
-        <Text style={[styles.toggleBtnText, viewMode === 'me' && { color: colors.text }]}>
+        style={[heroToggleStyles.toggleBtn, viewMode === 'me' && heroToggleStyles.toggleBtnActive]}>
+        <Text style={[heroToggleStyles.toggleBtnText, viewMode === 'me' && { color: colors.text }]}>
           Me
         </Text>
       </Pressable>

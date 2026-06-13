@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import type { OtpPurpose } from './email-config';
 
 interface SendEmailOptions {
   to: string | string[];
@@ -42,14 +43,15 @@ export async function sendEmail(options: SendEmailOptions): Promise<void> {
 export async function sendOtpEmail(
   to: string | string[],
   code: string,
-  purpose: 'login' | 'password_reset' | 'email_verify',
+  purpose: OtpPurpose,
 ): Promise<void> {
   const { appName } = getSmtpConfig();
 
-  const actionMap = {
+  const actionMap: Record<OtpPurpose, string> = {
     login: `sign in to ${appName}`,
     password_reset: `reset your ${appName} password`,
     email_verify: `verify your ${appName} email address`,
+    email_change: `confirm your new ${appName} email address`,
   };
   const action = actionMap[purpose];
 
