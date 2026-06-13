@@ -371,13 +371,13 @@ export function normalizeCheckin(
       })),
     },
     investments: (raw.investments ?? []).map((inv) => ({
-      ticker: '',
-      qty: 0,
-      entryPrice: 0,
-      entryDate: '',
-      currentPrice: 0,
-      currentPriceUpdatedAt: '',
       ...inv,
+      ticker: inv.ticker ?? '',
+      qty: inv.qty ?? 0,
+      entryPrice: inv.entryPrice ?? 0,
+      entryDate: inv.entryDate ?? '',
+      currentPrice: inv.currentPrice ?? 0,
+      currentPriceUpdatedAt: inv.currentPriceUpdatedAt ?? '',
       type: (INVESTMENT_TYPES as readonly string[]).includes(inv.type as string)
         ? inv.type as InvestmentType
         : 'Other',
