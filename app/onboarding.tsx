@@ -20,32 +20,34 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Step = 'choice' | 'create' | 'join' | 'join-pending';
 
-const STEP_META: Record<Step, { emoji: string; bg: string; title: string; sub: string }> = {
-  choice: {
-    emoji: '👨‍👩‍👧',
-    bg: colors.accentLight,
-    title: 'Set up your\nfamily group',
-    sub: 'Track finances together with your partner or family. You can always do this later.',
-  },
-  create: {
-    emoji: '✨',
-    bg: '#FFF8E6',
-    title: 'Name your\nfamily',
-    sub: 'Give your group a name. Your partner can join using your invite code.',
-  },
-  join: {
-    emoji: '🔗',
-    bg: '#EEF2FF',
-    title: 'Join a family',
-    sub: 'Enter the 8-character invite code from your family admin.',
-  },
-  'join-pending': {
-    emoji: '✅',
-    bg: '#E6F4EC',
-    title: 'Request sent!',
-    sub: 'The family admin will review and approve your request.',
-  },
-};
+function getStepMeta(colors: Colors): Record<Step, { emoji: string; bg: string; title: string; sub: string }> {
+  return {
+    choice: {
+      emoji: '👨‍👩‍👧',
+      bg: colors.accentLight,
+      title: 'Set up your\nfamily group',
+      sub: 'Track finances together with your partner or family. You can always do this later.',
+    },
+    create: {
+      emoji: '✨',
+      bg: colors.warningLight,
+      title: 'Name your\nfamily',
+      sub: 'Give your group a name. Your partner can join using your invite code.',
+    },
+    join: {
+      emoji: '🔗',
+      bg: colors.borderLight,
+      title: 'Join a family',
+      sub: 'Enter the 8-character invite code from your family admin.',
+    },
+    'join-pending': {
+      emoji: '✅',
+      bg: colors.positiveLight,
+      title: 'Request sent!',
+      sub: 'The family admin will review and approve your request.',
+    },
+  };
+}
 
 export default function OnboardingScreen() {
   const colors = useColors();
@@ -87,7 +89,7 @@ export default function OnboardingScreen() {
     }
   }
 
-  const meta = STEP_META[step];
+  const meta = getStepMeta(colors)[step];
 
   return (
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>

@@ -26,23 +26,25 @@ import { useMemo } from "react";
 
 type Step = "credentials" | "reset";
 
-const STEP_ILLUSTRATION: Record<
+function getStepIllustration(colors: Colors): Record<
   Step,
   { emoji: string; bg: string; title: string; sub: string }
-> = {
-  credentials: {
-    emoji: "🔐",
-    bg: colors.accentLight,
-    title: "Welcome back",
-    sub: "Sign in to your Nestworth account.",
-  },
-  reset: {
-    emoji: "🔑",
-    bg: "#FDF5E6",
-    title: "Set new password",
-    sub: "Your password has expired. Choose a new one.",
-  },
-};
+> {
+  return {
+    credentials: {
+      emoji: "🔐",
+      bg: colors.accentLight,
+      title: "Welcome back",
+      sub: "Sign in to your Nestworth account.",
+    },
+    reset: {
+      emoji: "🔑",
+      bg: colors.warningLight,
+      title: "Set new password",
+      sub: "Your password has expired. Choose a new one.",
+    },
+  };
+}
 
 export default function LoginScreen() {
   const colors = useColors();
@@ -203,7 +205,7 @@ export default function LoginScreen() {
     ? Math.max(0, Math.ceil((pendingExpiresAt - Date.now()) / 1000))
     : null;
 
-  const illus = STEP_ILLUSTRATION[step];
+  const illus = getStepIllustration(colors)[step];
 
   return (
     <KeyboardAvoidingView
