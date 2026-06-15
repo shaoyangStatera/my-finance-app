@@ -3,6 +3,7 @@ import { Button, Input } from '@/components/ui';
 import { useColors } from '@/contexts/ThemeContext';
 import { type Colors, radius, shadow, spacing, typography } from '@/lib/design-tokens';
 import { PENDING_OTP_TIMEOUT_MS } from '@/lib/session-config';
+import { REGISTRATION_ENABLED, REGISTRATION_DISABLED_MESSAGE } from '@/lib/registration';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -22,8 +23,8 @@ type Step = 'form' | 'verify';
 export default function RegisterScreen() {
   const colors = useColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { register, verifyEmail } = useAuth();
   const insets = useSafeAreaInsets();
+  const { register, verifyEmail } = useAuth();
   const [step, setStep] = useState<Step>('form');
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -49,6 +50,23 @@ export default function RegisterScreen() {
     }, 1000);
     return () => clearInterval(tick);
   }, [pendingExpiresAt]);
+
+  if (!REGISTRATION_ENABLED) {
+    return (
+      <View style={[styles.root, styles.closedRoot, { paddingTop: insets.top + spacing.xl }]}>
+        <Text style={styles.closedTitle}>Registration closed</Text>
+        <Text style={styles.closedText}>{REGISTRATION_DISABLED_MESSAGE}</Text>
+        <Pressable
+          onPress={() => router.replace('/login')}
+          style={({ pressed }) => [styles.primaryBtn, pressed && { opacity: 0.88 }]}>
+          <Text style={styles.primaryBtnText}>Go to sign in</Text>
+        </Pressable>
+        <Pressable onPress={() => router.replace('/welcome')} style={styles.backLink}>
+          <Text style={styles.backLinkText}>← Back</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   function startTimeout() {
     const expiresAt = Date.now() + PENDING_OTP_TIMEOUT_MS;
@@ -222,6 +240,26 @@ export default function RegisterScreen() {
 
 function makeStyles(colors: Colors) { return StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
+  closedRoot: {
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+  },
+  closedTitle: {
+    fontSize: 24,
+    fontFamily: 'Inter_600SemiBold',
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'center',
+  },
+  closedText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: spacing.sm,
+  },
   content: { paddingHorizontal: spacing.lg, alignItems: 'center' },
 
   illustrationWrap: { alignItems: 'center', marginBottom: spacing.lg },

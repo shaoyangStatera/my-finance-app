@@ -8,6 +8,7 @@ import {
   spacing,
   typography,
 } from "@/lib/design-tokens";
+import { REGISTRATION_ENABLED } from "@/lib/registration";
 import { PENDING_OTP_TIMEOUT_MS } from "@/lib/session-config";
 import { Redirect, router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -331,18 +332,22 @@ export default function LoginScreen() {
         {/* Bottom CTAs */}
         {step === "credentials" && (
           <>
-            <View style={styles.bottomRow}>
-              <Text style={styles.bottomText}>Don't have an account?</Text>
-              <Pressable onPress={() => router.push("/register")}>
-                <Text style={styles.bottomLink}> Create one</Text>
-              </Pressable>
-            </View>
+            {REGISTRATION_ENABLED && (
+              <View style={styles.bottomRow}>
+                <Text style={styles.bottomText}>Don't have an account?</Text>
+                <Pressable onPress={() => router.push("/register")}>
+                  <Text style={styles.bottomLink}> Create one</Text>
+                </Pressable>
+              </View>
+            )}
 
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.dividerLine} />
-            </View>
+            {REGISTRATION_ENABLED && (
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
+              </View>
+            )}
 
             <Pressable
               onPress={() => {

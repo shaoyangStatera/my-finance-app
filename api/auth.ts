@@ -21,6 +21,7 @@ import {
   rateLimitErrorMessage,
   recordRateLimitFailure,
 } from '../lib/server/rate-limit';
+import { REGISTRATION_ENABLED, REGISTRATION_DISABLED_MESSAGE } from '../lib/registration';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -85,6 +86,10 @@ async function handleLogin(req: VercelRequest, res: VercelResponse) {
 // ─── register ────────────────────────────────────────────────────────────────
 async function handleRegister(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  if (!REGISTRATION_ENABLED) {
+    return res.status(403).json({ error: REGISTRATION_DISABLED_MESSAGE });
+  }
 
   const ip = getClientIp(req);
   const rateKey = `register:${ip}`;

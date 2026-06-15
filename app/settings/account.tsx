@@ -2,6 +2,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePreferences } from '@/contexts/PreferencesContext';
 import { useColors } from '@/contexts/ThemeContext';
 import { confirmEmailChange, requestEmailChange } from '@/lib/api';
+import { REGISTRATION_ENABLED } from '@/lib/registration';
 import { type Colors, radius, shadow, spacing, typography } from '@/lib/design-tokens';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
@@ -171,14 +172,18 @@ export default function AccountSettingsScreen() {
           <View style={styles.card}>
             {isGuest ? (
               <>
-                <Pressable
-                  onPress={() => router.push('/register')}
-                  style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}>
-                  <Text style={styles.rowIcon}>✨</Text>
-                  <Text style={styles.rowLabel}>Create account</Text>
-                  <Text style={styles.chevron}>›</Text>
-                </Pressable>
-                <Divider />
+                {REGISTRATION_ENABLED && (
+                  <>
+                    <Pressable
+                      onPress={() => router.push('/register')}
+                      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}>
+                      <Text style={styles.rowIcon}>✨</Text>
+                      <Text style={styles.rowLabel}>Create account</Text>
+                      <Text style={styles.chevron}>›</Text>
+                    </Pressable>
+                    <Divider />
+                  </>
+                )}
                 <Pressable
                   onPress={() => router.push('/login')}
                   style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}>

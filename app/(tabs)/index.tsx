@@ -20,7 +20,7 @@ import {
   incomeByPerson,
   monthlyOutflowBreakdown,
 } from '@/lib/chart-data';
-import { HOUSING_STAGE_LABELS } from '@/lib/types';
+import { REGISTRATION_ENABLED } from '@/lib/registration';
 import { formatCurrency, formatMonthYear } from '@/lib/format';
 import { useColors } from '@/contexts/ThemeContext';
 import { type Colors, radius, shadow, spacing, typography } from '@/lib/design-tokens';
@@ -113,12 +113,14 @@ export default function OverviewScreen() {
       {/* Guest banner */}
       {isGuest && (
         <Pressable
-          onPress={() => router.push('/register')}
+          onPress={() => router.push(REGISTRATION_ENABLED ? '/register' : '/login')}
           style={styles.guestBanner}>
           <Text style={styles.guestBannerText}>
             👤 You're browsing as a guest — data won't be saved.
           </Text>
-          <Text style={styles.guestBannerCta}>Create account →</Text>
+          <Text style={styles.guestBannerCta}>
+            {REGISTRATION_ENABLED ? 'Create account →' : 'Sign in →'}
+          </Text>
         </Pressable>
       )}
 

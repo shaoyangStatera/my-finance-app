@@ -1,3 +1,4 @@
+import { REGISTRATION_ENABLED, REGISTRATION_DISABLED_MESSAGE } from '@/lib/registration';
 import { useColors } from '@/contexts/ThemeContext';
 import { type Colors, radius, shadow, spacing, typography } from '@/lib/design-tokens';
 import { router } from 'expo-router';
@@ -55,16 +56,14 @@ export default function WelcomeScreen() {
       {/* Actions */}
       <View style={styles.actions}>
         <Pressable
-          onPress={() => router.push('/register')}
+          onPress={() => router.push('/login')}
           style={({ pressed }) => [styles.primaryBtn, pressed && { opacity: 0.88 }]}>
-          <Text style={styles.primaryBtnText}>Create account</Text>
+          <Text style={styles.primaryBtnText}>Sign in</Text>
         </Pressable>
 
-        <Pressable
-          onPress={() => router.push('/login')}
-          style={({ pressed }) => [styles.secondaryBtn, pressed && { opacity: 0.7 }]}>
-          <Text style={styles.secondaryBtnText}>Sign in</Text>
-        </Pressable>
+        {!REGISTRATION_ENABLED && (
+          <Text style={styles.closedNote}>{REGISTRATION_DISABLED_MESSAGE}</Text>
+        )}
       </View>
 
       <Text style={styles.fine}>
@@ -170,6 +169,13 @@ function makeStyles(colors: Colors) { return StyleSheet.create({
     width: '100%',
     gap: spacing.sm,
     marginBottom: spacing.md,
+  },
+  closedNote: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
+    paddingHorizontal: spacing.sm,
   },
   primaryBtn: {
     backgroundColor: colors.text,
